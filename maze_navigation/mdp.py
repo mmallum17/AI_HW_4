@@ -118,15 +118,6 @@ class Mdp:
         l_col, l_row = self.get_left_state(col, row)
         r_col, r_row = self.get_right_state(col, row)
 
-        # print(up_col, up_row)
-        # print(r_col, r_row)
-        # print(l_col, l_row)
-
-
-        # print(self.maze_grid[up_col][up_row])
-        # print(self.maze_grid[r_col][r_row])
-        # print(self.maze_grid[l_col][l_row])
-
         util = 0.8 * self.maze_grid[up_col][up_row].util + 0.1 * self.maze_grid[l_col][l_row].util + 0.1 * self.maze_grid[r_col][r_row].util
         return util
 

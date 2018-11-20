@@ -8,7 +8,7 @@ class Maze:
         for c in range(cols):
             self.grid.append([])
             for r in range(rows):
-                self.grid[c].append(State(-0.04, False, False))
+                self.grid[c].append(State(-0.04, False, False, c, r))
 
         # for c in range(cols):
         #     for r in range(rows):

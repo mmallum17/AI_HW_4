@@ -1,5 +1,6 @@
 from maze_navigation.maze import Maze
 from maze_navigation.mdp import Mdp
+from maze_navigation.rl import ReinforcementLearning
 
 
 def init_mazes():
@@ -36,12 +37,15 @@ def init_mazes():
 
 
 mazes = init_mazes()
+
 mdp = Mdp(mazes['a'].grid)
 mdp_policy = mdp.policy_iteration()
 mdp.display_results()
 
-cols = len(mazes['a'].grid)
-rows = len(mazes['a'].grid[0])
+# rl = ReinforcementLearning(mazes['a'].grid, mdp_policy)
+# rl.due()
+# cols = len(mazes['a'].grid)
+# rows = len(mazes['a'].grid[0])
 
 
 # for c in range(len(mazes['a'].grid)):
