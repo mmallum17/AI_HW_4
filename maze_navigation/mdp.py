@@ -1,136 +1,214 @@
 import random
 import copy
+import maze_navigation.constants as constants
+# from maze_navigation.maze import Maze
 
-gamma = 0.9
+
+class Mdp:
+
+    gamma = 0.9
+
+    def __init__(self, maze_grid):
+        self.maze_grid = copy.deepcopy(maze_grid)
+
+        self.init_policy()
+        self.init_util()
+
+    def init_policy(self):
+        cols = len(self.maze_grid)
+        rows = len(self.maze_grid[0])
+
+        for c in range(cols):
+            for r in range(rows):
+                state = self.maze_grid[c][r]
+                if state.terminal:
+                    state.policy = constants.TERMINAL
+                elif state.obstacle:
+                    state.policy = constants.OBSTACLE
+                else:
+                    state.policy = random.randint(0, 3)
+
+    def init_util(self):
+        cols = len(self.maze_grid)
+        rows = len(self.maze_grid[0])
+
+        for c in range(cols):
+            for r in range(rows):
+                state = self.maze_grid[c][r]
+                if state.terminal:
+                    state.util = state.reward
+                elif state.obstacle:
+                    state.util = None
+                else:
+                    state.util = 0
+
+    def policy_iteration(self):
+        cols = len(self.maze_grid)
+        rows = len(self.maze_grid[0])
+
+        while True:
+            self.evaluate_policy()
+            # self.display_results()
+            unchanged = True
+
+            for c in range(cols):
+                for r in range(rows):
+                    state = self.maze_grid[c][r]
+
+                    if not state.terminal and not state.obstacle:
+                        new_util, max_action = self.calc_new_util(c, r)
+                        if new_util > state.util:
+                            state.policy = max_action
+                            unchanged = False
+
+            if unchanged:
+                break
+
+        policy = []
+        for c in range(cols):
+            policy.append([])
+            for r in range(rows):
+                state = self.maze_grid[c][r]
+                policy[c].append(state.policy)
+
+        return policy
+
+    def evaluate_policy(self):
+        new_maze_grid = copy.deepcopy(self.maze_grid)
+        cols = len(self.maze_grid)
+        rows = len(self.maze_grid[0])
+
+        for c in range(cols):
+            for r in range(rows):
+                state = self.maze_grid[c][r]
+                new_state = new_maze_grid[c][r]
+
+                if not self.maze_grid[c][r].terminal and not self.maze_grid[c][r].obstacle:
+                    if state.policy == constants.UP:
+                        new_state.util = state.reward + self.gamma * self.get_up_util(c, r)
+                    elif state.policy == constants.DOWN:
+                        new_state.util = state.reward + self.gamma * self.get_down_util(c, r)
+                    elif state.policy == constants.LEFT:
+                        new_state.util = state.reward + self.gamma * self.get_left_util(c, r)
+                    elif state.policy == constants.RIGHT:
+                        new_state.util = state.reward + self.gamma * self.get_right_util(c, r)
+                    else:
+                        pass    # state is either terminal or obstacle
+
+        self.maze_grid = copy.deepcopy(new_maze_grid)
+
+    def calc_new_util(self, col, row):
+        max_util, max_action = self.get_max_util(col, row)
+        util = self.maze_grid[col][row].reward + self.gamma * max_util
+        return util, max_action
+
+    def get_max_util(self, col, row):
+        up_util = self.get_up_util(col, row)
+        down_util = self.get_down_util(col, row)
+        left_util = self.get_left_util(col, row)
+        right_util = self.get_right_util(col, row)
+
+        util_list = [up_util, down_util, left_util, right_util]
+        max_util = max(util_list)
+        max_pos = util_list.index(max_util)
+        return max_util, max_pos
+
+    def get_up_util(self, col, row):
+        up_col, up_row = self.get_up_state(col, row)
+        l_col, l_row = self.get_left_state(col, row)
+        r_col, r_row = self.get_right_state(col, row)
+
+        # print(up_col, up_row)
+        # print(r_col, r_row)
+        # print(l_col, l_row)
 
 
-def evaluate_policy(utility_grid, policy_list):
-    new_grid = copy.deepcopy(utility_grid)
+        # print(self.maze_grid[up_col][up_row])
+        # print(self.maze_grid[r_col][r_row])
+        # print(self.maze_grid[l_col][l_row])
 
-    for state in range(len(utility_grid) - 1):
-        if policy_list[state] == 0:
-            new_grid[state] = reward[state] + gamma * get_up_util(state, utility_grid)
-        elif policy_list[state] == 1:
-            new_grid[state] = reward[state] + gamma * get_down_util(state, utility_grid)
-        elif policy_list[state] == 2:
-            new_grid[state] = reward[state] + gamma * get_left_util(state, utility_grid)
+        util = 0.8 * self.maze_grid[up_col][up_row].util + 0.1 * self.maze_grid[l_col][l_row].util + 0.1 * self.maze_grid[r_col][r_row].util
+        return util
+
+    def get_down_util(self, col, row):
+        d_col, d_row = self.get_down_state(col, row)
+        l_col, l_row = self.get_left_state(col, row)
+        r_col, r_row = self.get_right_state(col, row)
+
+        util = 0.8 * self.maze_grid[d_col][d_row].util + 0.1 * self.maze_grid[l_col][l_row].util + 0.1 * self.maze_grid[r_col][r_row].util
+
+        return util
+
+    def get_left_util(self, col, row):
+        l_col, l_row = self.get_left_state(col, row)
+        up_col, up_row = self.get_up_state(col, row)
+        d_col, d_row = self.get_down_state(col, row)
+
+        util = 0.8 * self.maze_grid[l_col][l_row].util + 0.1 * self.maze_grid[up_col][up_row].util + 0.1 * self.maze_grid[d_col][d_row].util
+
+        return util
+
+    def get_right_util(self, col, row):
+        r_col, r_row = self.get_right_state(col, row)
+        up_col, up_row = self.get_up_state(col, row)
+        d_col, d_row = self.get_down_state(col, row)
+
+        util = 0.8 * self.maze_grid[r_col][r_row].util + 0.1 * self.maze_grid[up_col][up_row].util + 0.1 * self.maze_grid[d_col][d_row].util
+
+        return util
+
+    def get_up_state(self, col, row):
+        row_size = len(self.maze_grid[0])
+
+        # Get location if going up
+        if row >= row_size - 1 or self.maze_grid[col][row + 1].obstacle:
+            up_state = col, row
         else:
-            new_grid[state] = reward[state] + gamma + get_right_util(state, utility_grid)
+            up_state = col, row + 1
+        return up_state
 
-    return new_grid
+    def get_down_state(self, col, row):
+        # Get location if going down
+        if row <= 0 or self.maze_grid[col][row - 1].obstacle:
+            down_state = col, row
+        else:
+            down_state = col, row - 1
+        return down_state
 
+    def get_left_state(self, col, row):
+        # Get location if going left
+        if col <= 0 or self.maze_grid[col - 1][row].obstacle:
+            left_state = col, row
+        else:
+            left_state = col - 1, row
+        return left_state
 
-def init_policy_vector():
-    policy_list = []
-    for i in range(len(reward) - 1):
-        policy_list.append(random.randint(0, 3))
-    policy_list.append(4)
-    return policy_list
+    def get_right_state(self, col, row):
+        col_size = len(self.maze_grid)
 
+        # Get location if going right
+        if col >= col_size - 1 or self.maze_grid[col + 1][row].obstacle:
+            right_state = col, row
+        else:
+            right_state = col + 1, row
+        return right_state
 
-def policy_iteration(utility_grid):
-    policy_list = init_policy_vector()
-    while True:
-        utility_grid = evaluate_policy(utility_grid, policy_list)
-        unchanged = True
+    def display_results(self):
+        cols = len(self.maze_grid)
+        rows = len(self.maze_grid[0])
 
-        for state in range(len(utility_grid) - 1):
-            new_utility, max_pos = calc_new_utility(state, utility_grid)
-            if new_utility > utility_grid[state]:
-                policy_list[state] = max_pos
-                unchanged = False
+        print("Policy table calculated:")
+        for c in range(cols):
+            for r in range(rows):
+                state = self.maze_grid[c][r]
+                print("({}, {}): {}".format(c + 1, r + 1, constants.action_list[state.policy]))
 
-        if unchanged:
-            break
+        print()
 
-    display_results(utility_grid, policy_list)
+        print("Utilities:")
+        for c in range(cols):
+            for r in range(rows):
+                state = self.maze_grid[c][r]
+                print("({}, {}): {}".format(c + 1, r + 1, state.util))
 
-
-def calc_new_utility(state, utility_grid):
-    max_util, max_pos = get_max_utility(state, utility_grid)
-    utility = reward[state] + gamma * max_util
-    return utility, max_pos
-
-
-def get_max_utility(state, utility_grid):
-    up_util = get_up_util(state, utility_grid)
-    down_util = get_down_util(state, utility_grid)
-    left_util = get_left_util(state, utility_grid)
-    right_util = get_right_util(state, utility_grid)
-
-    util_list = [up_util, down_util, left_util, right_util]
-    max_util = max(util_list)
-    max_pos = util_list.index(max_util)
-    return max_util, max_pos
-
-
-def get_up_util(state, utility_grid):
-    up_state = get_up_state(state)
-    left_state = get_left_state(state)
-    right_state = get_right_state(state)
-
-    util = 0.8 * utility_grid[up_state] + 0.1 * utility_grid[left_state] + 0.1 * utility_grid[right_state]
-    return util
-
-
-def get_down_util(state, utility_grid):
-    down_state = get_down_state(state)
-    left_state = get_left_state(state)
-    right_state = get_right_state(state)
-
-    util = 0.8 * utility_grid[down_state] + 0.1 * utility_grid[left_state] + 0.1 * utility_grid[right_state]
-    return util
-
-
-def get_left_util(state, utility_grid):
-    left_state = get_left_state(state)
-    up_state = get_up_state(state)
-    down_state = get_down_state(state)
-
-    util = 0.8 * utility_grid[left_state] + 0.1 * utility_grid[up_state] + 0.1 * utility_grid[down_state]
-    return util
-
-
-def get_right_util(state, utility_grid):
-    right_state = get_right_state(state)
-    up_state = get_up_state(state)
-    down_state = get_down_state(state)
-
-    util = 0.8 * utility_grid[right_state] + 0.1 * utility_grid[up_state] + 0.1 * utility_grid[down_state]
-    return util
-
-
-def get_up_state(state):
-    # Get location if going up
-    if state >= 6:
-        up_state = state
-    else:
-        up_state = state + 3
-    return up_state
-
-
-def get_down_state(state):
-    # Get location if going down
-    if state <= 2:
-        down_state = state
-    else:
-        down_state = state - 3
-    return down_state
-
-
-def get_left_state(state):
-    # Get location if going left
-    if state % 3 == 0:
-        left_state = state
-    else:
-        left_state = state - 1
-    return left_state
-
-
-def get_right_state(state):
-    # Get location if going right
-    if state % 3 == 2:
-        right_state = state
-    else:
-        right_state = state + 1
-    return right_state
+        print()
