@@ -12,7 +12,10 @@ win_pos = [
 player_dict = {
     'EMPTY': '0',
     'X': '1',
-    'O': '2'
+    'O': '2',
+    '0': ' ',
+    '1': 'X',
+    '2': 'O'
 }
 
 board_size = 9
