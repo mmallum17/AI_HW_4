@@ -17,9 +17,9 @@ action_list = [
 default_transition_model = {
             'UP': {
                 'UP': 0.8,
-                'DOWN': 0.1,
+                'DOWN': 0,
                 'LEFT': 0.1,
-                'RIGHT': 0
+                'RIGHT': 0.1
             },
             'DOWN': {
                 'UP': 0,

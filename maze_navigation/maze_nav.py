@@ -1,7 +1,8 @@
 from maze_navigation.maze import Maze
 from maze_navigation.mdp import Mdp
 from maze_navigation.rl import ReinforcementLearning
-from maze_navigation.constants import default_transition_model
+# from maze_navigation.constants import default_transition_model
+
 
 def init_mazes():
     mazes = {}
@@ -39,17 +40,25 @@ def init_mazes():
 mazes = init_mazes()
 
 mdp = Mdp(mazes['a'].grid)
-mdp_policy = mdp.policy_iteration()
+mdp.init_policy()
+mdp.init_util()
+mdp_maze_grid = mdp.policy_iteration()
 mdp.display_results()
+
+rl = ReinforcementLearning(mdp_maze_grid)
+rl.due()
+
+rl = ReinforcementLearning(mdp_maze_grid)
+rl.adp()
+
+rl = ReinforcementLearning(mdp_maze_grid)
+rl = rl.td()
 
 # rl = ReinforcementLearning(mazes['a'].grid, mdp_policy)
-# rl.due()
-
-rl = ReinforcementLearning(mazes['a'].grid, mdp_policy)
-adp_maze_grid = rl.adp()
-mdp = Mdp(adp_maze_grid)
-mdp_policy = mdp.policy_iteration()
-mdp.display_results()
+# adp_maze_grid = rl.adp()
+# mdp = Mdp(adp_maze_grid)
+# mdp_policy = mdp.policy_iteration()
+# mdp.display_results()
 # cols = len(mazes['a'].grid)
 # rows = len(mazes['a'].grid[0])
 

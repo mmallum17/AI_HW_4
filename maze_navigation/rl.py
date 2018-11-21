@@ -1,13 +1,58 @@
 import maze_navigation.constants as constants
 import random
 import copy
+from maze_navigation.mdp import Mdp
 
 
 class ReinforcementLearning:
 
-    def __init__(self, maze_grid, mdp_policy):
+    def __init__(self, maze_grid):
         self.maze_grid = copy.deepcopy(maze_grid)
-        self.mdp_policy = copy.deepcopy(mdp_policy)
+        # self.mdp_policy = copy.deepcopy(mdp_policy)
+        self.init_util()
+
+    def td(self):
+        # self.init_util()
+
+        cols = len(self.maze_grid)
+        rows = len(self.maze_grid[0])
+
+        EPOCHS = 20000
+        for i in range(EPOCHS):
+            self.run_td_trial(i)
+
+        for c in range(cols):
+            for r in range(rows):
+                state = self.maze_grid[c][r]
+                print("({}, {}): {}".format(state.col + 1, state.row + 1, state.util))
+        print()
+
+    def init_util(self):
+        cols = len(self.maze_grid)
+        rows = len(self.maze_grid[0])
+
+        for c in range(cols):
+            for r in range(rows):
+                state = self.maze_grid[c][r]
+                if state.terminal:
+                    state.util = state.reward
+                elif state.obstacle:
+                    state.util = None
+                else:
+                    state.util = 0
+
+    def run_td_trial(self, i):
+        col, row = self.get_init_pos()
+        state = self.maze_grid[col][row]
+        learning_rate = 1 / (i + 1)
+
+        while not state.terminal:
+            action = self.maze_grid[col][row].policy
+            col, row, _ = self.simulate_move(col, row, action)
+            new_state = self.maze_grid[col][row]
+            state.util = state.util + learning_rate * (state.reward + new_state.util - state.util)
+            state = new_state
+            # path.append(state)
 
     def adp(self):
         cols = len(self.maze_grid)
@@ -16,30 +61,81 @@ class ReinforcementLearning:
         for c in range(cols):
             for r in range(rows):
                 state = self.maze_grid[c][r]
-                state.adp_state_action_state_dict = constants.blank_transition_model
-                state.adp_state_action_dict = constants.blank_state_action_dict
+                state.adp_state_action_state_dict = copy.deepcopy(constants.blank_transition_model)
+                state.adp_state_action_dict = copy.deepcopy(constants.blank_state_action_dict)
+                state.transition_model = copy.deepcopy(constants.blank_transition_model)
+                state.adp_new = True
 
-        EPOCHS = 20000
+        EPOCHS = 100
         for i in range(EPOCHS):
-            path = self.run_trial()
-            self.update_adp_elements(path)
+            self.run_adp_trial()
+            # print()
+            # print(i)
+            # path = self.run_trial()
+            # self.update_adp_elements(path)
 
-        for c in range(cols):
-            for r in range(rows):
-                state = self.maze_grid[c][r]
-                for state_action_key in state.adp_state_action_dict:
-                    state_action_count = state.adp_state_action_dict[state_action_key]
-                    if state_action_count > 0:
-                        for state_action_state_key in state.adp_state_action_state_dict[state_action_key]:
-                            state_action_state_count = state.adp_state_action_state_dict[state_action_key][state_action_state_key]
-                            state.transition_model[state_action_key][state_action_state_key] = state_action_state_count / state_action_count
+        # for c in range(cols):
+        #     for r in range(rows):
+        #         state = self.maze_grid[c][r]
+        #         for state_action_key in state.adp_state_action_dict:
+        #             state_action_count = state.adp_state_action_dict[state_action_key]
+        #             if state_action_count > 0:
+        #                 for state_action_state_key in state.adp_state_action_state_dict[state_action_key]:
+        #                     state_action_state_count = state.adp_state_action_state_dict[state_action_key][state_action_state_key]
+        #                     state.transition_model[state_action_key][state_action_state_key] = state_action_state_count / state_action_count
 
-        return self.maze_grid
+        mdp = Mdp(self.maze_grid)
+        mdp.display_results()
+
+        # return self.maze_grid
+
+    def run_adp_trial(self):
+        # Get starting position
+        col, row = self.get_init_pos()
+        state = self.maze_grid[col][row]
+        if state.adp_new:
+            state.adp_new = False
+            state.util = state.reward
+
+        # Run trial to a terminal state
+        while not state.terminal:
+            # print(state.col + 1, state.row + 1)
+            # Get new state
+            policy_action = self.maze_grid[col][row].policy
+            col, row, action_taken = self.simulate_move(col, row, policy_action)
+            new_state = self.maze_grid[col][row]
+
+            # Update new state
+            if new_state.adp_new:
+                new_state.adp_new = False
+                new_state.util = new_state.reward
+
+            # Update old state
+            policy_action_key = str(constants.action_list[policy_action])
+            # print(policy_action_key)
+            action_taken_key = str(constants.action_list[action_taken])
+            s_a_dict = state.adp_state_action_dict
+            s_a_s_dict = state.adp_state_action_state_dict
+            s_a_dict[policy_action_key] += 1
+            s_a_s_dict[policy_action_key][action_taken_key] += 1
+            for action_key in s_a_s_dict[policy_action_key]:
+                if s_a_s_dict[policy_action_key][action_key] > 0:
+                    state.transition_model[policy_action_key][action_key] = s_a_s_dict[policy_action_key][action_key] / s_a_dict[policy_action_key]
+                    # print(state.transition_model)
+
+            # Policy evaluation
+            mdp = Mdp(self.maze_grid)
+            new_maze_grid = mdp.evaluate_policy()
+            self.maze_grid = copy.deepcopy(new_maze_grid)
+            # print(state.col + 1, state.row + 1)
+            # print(state.transition_model)
+
+            state = new_state
 
     def update_adp_elements(self, path):
         for state in path:
             if not state.terminal:
-                policy_action = self.mdp_policy[state.col][state.row]
+                policy_action = self.maze_grid[state.col][state.row].policy
                 policy_action_key = str(constants.action_list[policy_action])
                 actual_action_key = str(constants.action_list[state.action])
 
@@ -48,7 +144,7 @@ class ReinforcementLearning:
                 state.adp_state_action_state_dict[policy_action_key][actual_action_key] += 1
 
     def due(self):
-        EPOCHS = 100000
+        EPOCHS = 1000
         cols = len(self.maze_grid)
         rows = len(self.maze_grid[0])
 
@@ -56,11 +152,11 @@ class ReinforcementLearning:
             path = self.run_trial()
             self.update_due_util(path)
 
-            for c in range(cols):
-                for r in range(rows):
-                    state = self.maze_grid[c][r]
-                    print("({}, {}): {}".format(state.col + 1, state.row + 1, state.due[0]))
-            print()
+        for c in range(cols):
+            for r in range(rows):
+                state = self.maze_grid[c][r]
+                print("({}, {}): {}".format(state.col + 1, state.row + 1, state.due[0]))
+        print()
 
     def update_due_util(self, path):
         reverse_path = path
@@ -87,7 +183,7 @@ class ReinforcementLearning:
         path = []
 
         while not state.terminal:
-            action = self.mdp_policy[col][row]
+            action = self.maze_grid[col][row].policy
             col, row, action = self.simulate_move(col, row, action)
             state.action = action
             path.append(state)

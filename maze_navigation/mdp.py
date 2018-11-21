@@ -6,13 +6,13 @@ import maze_navigation.constants as constants
 
 class Mdp:
 
-    gamma = 0.9
+    gamma = 1
 
     def __init__(self, maze_grid):
         self.maze_grid = copy.deepcopy(maze_grid)
 
-        self.init_policy()
-        self.init_util()
+        # self.init_policy()
+        # self.init_util()
 
     def init_policy(self):
         cols = len(self.maze_grid)
@@ -47,7 +47,8 @@ class Mdp:
         rows = len(self.maze_grid[0])
 
         while True:
-            self.evaluate_policy()
+            new_maze_grid = self.evaluate_policy()
+            self.maze_grid = copy.deepcopy(new_maze_grid)
             # self.display_results()
             unchanged = True
 
@@ -64,14 +65,15 @@ class Mdp:
             if unchanged:
                 break
 
-        policy = []
-        for c in range(cols):
-            policy.append([])
-            for r in range(rows):
-                state = self.maze_grid[c][r]
-                policy[c].append(state.policy)
-
-        return policy
+        return self.maze_grid
+        # policy = []
+        # for c in range(cols):
+        #     policy.append([])
+        #     for r in range(rows):
+        #         state = self.maze_grid[c][r]
+        #         policy[c].append(state.policy)
+        #
+        # return policy
 
     def evaluate_policy(self):
         new_maze_grid = copy.deepcopy(self.maze_grid)
@@ -82,20 +84,25 @@ class Mdp:
             for r in range(rows):
                 state = self.maze_grid[c][r]
                 new_state = new_maze_grid[c][r]
+                # if c == 2 and r == 2:
+                    # print(self.maze_grid[c][r].policy)
 
-                if not self.maze_grid[c][r].terminal and not self.maze_grid[c][r].obstacle:
-                    if state.policy == constants.UP:
-                        new_state.util = state.reward + self.gamma * self.get_up_util(c, r)
-                    elif state.policy == constants.DOWN:
-                        new_state.util = state.reward + self.gamma * self.get_down_util(c, r)
-                    elif state.policy == constants.LEFT:
-                        new_state.util = state.reward + self.gamma * self.get_left_util(c, r)
-                    elif state.policy == constants.RIGHT:
-                        new_state.util = state.reward + self.gamma * self.get_right_util(c, r)
-                    else:
-                        pass    # state is either terminal or obstacle
 
-        self.maze_grid = copy.deepcopy(new_maze_grid)
+                if not state.adp_new:
+                    if not self.maze_grid[c][r].terminal and not self.maze_grid[c][r].obstacle:
+                        if state.policy == constants.UP:
+                            new_state.util = state.reward + self.gamma * self.get_up_util(c, r)
+                        elif state.policy == constants.DOWN:
+                            new_state.util = state.reward + self.gamma * self.get_down_util(c, r)
+                        elif state.policy == constants.LEFT:
+                            new_state.util = state.reward + self.gamma * self.get_left_util(c, r)
+                        elif state.policy == constants.RIGHT:
+                            new_state.util = state.reward + self.gamma * self.get_right_util(c, r)
+                        else:
+                            pass    # state is either terminal or obstacle
+
+        return new_maze_grid
+        # self.maze_grid = copy.deepcopy(new_maze_grid)
 
     def calc_new_util(self, col, row):
         max_util, max_action = self.get_max_util(col, row)
@@ -170,6 +177,8 @@ class Mdp:
         down_prob = transition_dict['DOWN']
 
         util = r_prob * self.maze_grid[r_col][r_row].util + up_prob * self.maze_grid[up_col][up_row].util + down_prob * self.maze_grid[d_col][d_row].util
+        # if col == 2 and row == 2:
+        #     print(r_prob, self.maze_grid[r_col][r_row].util, self.maze_grid[col][row].adp_state_action_state_dict)
 
         return util
 
