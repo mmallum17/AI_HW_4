@@ -1,4 +1,4 @@
-from maze_navigation.state import State
+from maze_navigation.models.state import State
 
 
 class Maze:
