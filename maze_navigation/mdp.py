@@ -87,7 +87,6 @@ class Mdp:
                 # if c == 2 and r == 2:
                     # print(self.maze_grid[c][r].policy)
 
-
                 if not state.adp_new:
                     if not self.maze_grid[c][r].terminal and not self.maze_grid[c][r].obstacle:
                         if state.policy == constants.UP:

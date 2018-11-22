@@ -13,11 +13,14 @@ class Due(ReinforcementLearning):
             path = self.run_trial()
             self.update_due_util(path)
 
-        for c in range(cols):
-            for r in range(rows):
-                state = self.maze_grid[c][r]
-                print("({}, {}): {}".format(state.col + 1, state.row + 1, state.due[0]))
-        print()
+        # for c in range(cols):
+        #     for r in range(rows):
+        #         state = self.maze_grid[c][r]
+        #         print("({}, {}): {}".format(state.col + 1, state.row + 1, state.due[0]))
+        # print()
+
+        self.update_policy()
+        return self.maze_grid
 
     def update_due_util(self, path):
         reverse_path = path
@@ -55,3 +58,52 @@ class Due(ReinforcementLearning):
         path.append(state)
 
         return path
+
+    def update_policy(self):
+        cols = len(self.maze_grid)
+        rows = len(self.maze_grid[0])
+
+        for c in range(cols):
+            for r in range(rows):
+                state = self.maze_grid[c][r]
+                _, max_action = self.get_max_util(c, r)
+                state.policy = max_action
+
+    def get_max_util(self, col, row):
+        up_util = self.get_up_util(col, row)
+        down_util = self.get_down_util(col, row)
+        left_util = self.get_left_util(col, row)
+        right_util = self.get_right_util(col, row)
+
+        util_list = [up_util, down_util, left_util, right_util]
+        max_util = max(util_list)
+        max_pos = util_list.index(max_util)
+        return max_util, max_pos
+
+    def get_up_util(self, col, row):
+        up_col, up_row = self.get_up_state(col, row)
+
+        util = self.maze_grid[up_col][up_row].due[0]
+
+        return util
+
+    def get_down_util(self, col, row):
+        down_col, down_row = self.get_down_state(col, row)
+
+        util = self.maze_grid[down_col][down_row].due[0]
+
+        return util
+
+    def get_left_util(self, col, row):
+        l_col, l_row = self.get_left_state(col, row)
+
+        util = self.maze_grid[l_col][l_row].due[0]
+
+        return util
+
+    def get_right_util(self, col, row):
+        r_col, r_row = self.get_right_state(col, row)
+
+        util = self.maze_grid[r_col][r_row].due[0]
+
+        return util

@@ -125,3 +125,4 @@ class ReinforcementLearning:
         else:
             right_state = col + 1, row
         return right_state
+
